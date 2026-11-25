@@ -3,7 +3,6 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-# Importa tu simulador (ajusta el nombre si la clase o métodos están en español)
 from minesweeper import minasweeper
 
 # Cuando Martín suba su código, descomenta la siguiente línea y borra DummyDecisionTree:
@@ -29,27 +28,30 @@ class DummyDecisionTree:
         avg_danger = sum(revealed_numbers) / (len(revealed_numbers) * 4.0)
         return min(max(avg_danger, 0.05), 0.95)
 
-
-def load_csv(filepath: str):
-    """Carga X (24 features) e y (etiqueta 0 o 1) desde un archivo CSV."""
+# Cargar archivos csv de entrenamiento y prueba
+def cargar_csv (filepath: str):
+    
     X, y = [], []
     with open(filepath, mode="r", encoding="utf-8") as f:
         reader = csv.reader(f)
-        next(reader)  # Saltar encabezado f0..f23, label
+        #quitar la primera fila de encabezados
+        next(reader) 
         for row in reader:
             X.append([int(val) for val in row[:-1]])
             y.append(int(row[-1]))
     return X, y
 
 
-def compute_classification_metrics(y_true: list, y_pred: list) -> dict:
+def calcular_metricas(y_true: list, y_pred: list) -> dict:
     """Calcula Accuracy, Precision, Recall, F1-Score y Matriz de Confusión."""
+    # contat casillas verdaderas positivas, verdaderas negativas, falsas positivas y falsas negativas
     tp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 1)
     tn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 0)
     fp = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 0 and yp == 1)
     fn = sum(1 for yt, yp in zip(y_true, y_pred) if yt == 1 and yp == 0)
 
     total = len(y_true)
+    #Porcentaje de aciertos, precision en descubrir bombas, conjunto de minas reales que se encontraron y resumen de aciertos y errores
     accuracy = (tp + tn) / total if total else 0.0
     precision = tp / (tp + fp) if (tp + fp) else 0.0
     recall = tp / (tp + fn) if (tp + fn) else 0.0
@@ -117,12 +119,12 @@ def simulador_jugadas(agent_type: str, model=None, num_juegos: int = 1000, seed:
         "avg_revealed": total_reveladas / num_juegos,
     }
 
-
-def generate_plots(depths, train_accs, test_accs, best_metrics, random_stats, tree_stats, out_dir="report"):
-    """Genera y guarda los 3 gráficos en inglés de alta resolución para el informe."""
+# Metodo que genera y guarda los gráficos de desempeño del Árbol de Decisión y la comparación con el agente aleatorio.
+def generar_graficas(depths, train_accs, test_accs, best_metrics, random_stats, tree_stats, out_dir="report"):
+    #Genera la carpeta report si no existe
     os.makedirs(out_dir, exist_ok=True)
 
-    # 1. Curva de Overfitting (Train vs Test Accuracy por profundidad)
+    # dibujar lineas comparando la exactitud de entrenamiento y prueba en función de la profundidad máxima del árbol
     plt.figure(figsize=(8, 5))
     plt.plot(depths, [a * 100 for a in train_accs], marker="o", label="Training Accuracy", linewidth=2)
     plt.plot(depths, [a * 100 for a in test_accs], marker="s", label="Test Accuracy", linewidth=2)
@@ -136,7 +138,7 @@ def generate_plots(depths, train_accs, test_accs, best_metrics, random_stats, tr
     plt.savefig(os.path.join(out_dir, "1_overfitting_curve.png"), dpi=300)
     plt.close()
 
-    # 2. Matriz de Confusión (2x2)
+    # grafica de matriz de confusión para el mejor modelo en el conjunto de prueba
     cm = [
         [best_metrics["tn"], best_metrics["fp"]],
         [best_metrics["fn"], best_metrics["tp"]],
@@ -160,7 +162,7 @@ def generate_plots(depths, train_accs, test_accs, best_metrics, random_stats, tr
     plt.savefig(os.path.join(out_dir, "2_confusion_matrix.png"), dpi=300)
     plt.close()
 
-    # 3. Comparación de Win Rate (Agente Aleatorio vs Árbol de Decisión)
+    # comparación de tasas de victoria entre el agente aleatorio y el Árbol de Decisión en 1,000 juegos simulados
     plt.figure(figsize=(7, 5))
     agents = ["Random Baseline", "Decision Tree Agent"]
     win_rates = [random_stats["win_rate"], tree_stats["win_rate"]]
@@ -183,8 +185,8 @@ def generate_plots(depths, train_accs, test_accs, best_metrics, random_stats, tr
 
 if __name__ == "__main__":
     print("Cargando datasets desde data/...")
-    X_train, y_train = load_csv("data/train.csv")
-    X_test, y_test = load_csv("data/test.csv")
+    X_train, y_train = cargar_csv ("data/train.csv")
+    X_test, y_test = cargar_csv ("data/test.csv")
 
     depths = [2, 4, 6, 8, 10, 12]
     train_accs, test_accs = [], []
@@ -201,8 +203,8 @@ if __name__ == "__main__":
         train_preds = [1 if tree.predict_proba(x) >= 0.5 else 0 for x in X_train]
         test_preds = [1 if tree.predict_proba(x) >= 0.5 else 0 for x in X_test]
 
-        train_m = compute_classification_metrics(y_train, train_preds)
-        test_m = compute_classification_metrics(y_test, test_preds)
+        train_m = calcular_metricas(y_train, train_preds)
+        test_m = calcular_metricas(y_test, test_preds)
 
         train_accs.append(train_m["accuracy"])
         test_accs.append(test_m["accuracy"])
@@ -220,5 +222,5 @@ if __name__ == "__main__":
     print(f"Agente Aleatorio    -> Win Rate: {random_stats['win_rate']:.2f}% | Casillas abiertas prom.: {random_stats['avg_revealed']:.1f}")
     print(f"Árbol de Decisión   -> Win Rate: {tree_stats['win_rate']:.2f}% | Casillas abiertas prom.: {tree_stats['avg_revealed']:.1f}")
 
-    generate_plots(depths, train_accs, test_accs, best_metrics, random_stats, tree_stats, out_dir="report")
+    generar_graficas(depths, train_accs, test_accs, best_metrics, random_stats, tree_stats, out_dir="report")
     print("\nGráficos guardados exitosamente en la carpeta 'report/'.")
