@@ -1,82 +1,77 @@
 import csv
 import os
 import random
-from minesweeper import minasweeper
+from minasweeper import minasweeper
     
 # Metodo que simula partidas para la recolección de datos de entrenamiento para el modelo de Buscaminas.
-def collect_raw_samples(num_games: int = 5000, semilla: int = 42) -> list:
+def collect_raw_muestras(can_jugadas: int = 5000, semilla: int = 42) -> list:
     
     random.seed(semilla)
-    game = minasweeper(filas=9, columnas=9, can_minas=10)
-    unique_samples = {}  # Usamos un diccionario para evitar ventanas duplicadas
+    juego = minasweeper(filas=9, columnas=9, can_minas=10)  
+    # dicionario para guardar las ventanas 5x5
+    diccionario = {}  
 
-    for _ in range(num_games):
-        game.reset()
+    for _ in range(can_jugadas):
+        juego.reset()
         # Primer movimiento aleatorio en el tablero
-        r, c = random.randint(0, game.filas - 1), random.randint(0, game.columnas - 1)
-        over, _ = game.jugada(r, c)
+        f, c = random.randint(0, juego.filas - 1), random.randint(0, juego.columnas - 1)
+        over, _ = juego.jugada(f, c)
 
         while not over:
-            frontier = game.busqueda_casilla()
-            if not frontier:
+            frontera = juego.busqueda_casilla()
+            if not frontera:
                 # Si no hay frontera visible, elegir una casilla oculta al azar
-                hidden = [
-                    (rr, cc)
-                    for rr in range(game.filas)
-                    for cc in range(game.columnas)
-                    if not game.visible[rr][cc]
-                ]
-                if not hidden:
+                casilla_oculta = [
+                    (ff, cc)
+                    for ff in range(juego.filas)
+                    for cc in range(juego.columnas)
+                    if not juego.visible[ff][cc]
+                ]   
+                if not casilla_oculta:
                     break
-                next_r, next_c = random.choice(hidden)
+                siguiente_f, siguiente_c = random.choice(casilla_oculta)
             else:
                 # Extraer todas las ventanas de la frontera actual antes de mover
-                for fr, fc in frontier:
-                    window = tuple(game.ventana_5x5(fr, fc))
-                    # NOTA: Si en minesweeper.py la matriz se llama self.tablero,
-                    # cambia game.tablero[fr][fc] por game.tablero[fr][fc]
-                    label = 1 if game.tablero[fr][fc] == -1 else 0
-                    unique_samples[window] = label
+                for fr, fc in frontera:
+                    ventana = tuple(juego.ventana_5x5(fr, fc))
+                    label = 1 if juego.tablero[fr][fc] == -1 else 0
+                    diccionario[ventana] = label
 
                 # Elegir una casilla frontera al azar para avanzar la partida
-                next_r, next_c = random.choice(frontier)
+                siguiente_f, siguiente_c = random.choice(frontera)
 
-            over, _ = game.jugada(next_r, next_c)
+            over, _ = juego.jugada(siguiente_f, siguiente_c)
 
     # Convertir el diccionario a una lista de (features_list, label)
-    dataset = [(list(window), label) for window, label in unique_samples.items()]
+    dataset = [(list(ventana), label) for ventana, label in diccionario.items()]
     return dataset
 
-
+# Equilibrar las jugadas en 50% minas y 50% seguras mediante submuestreo y divide los datos entre un 80% entrenamiento 
+# y un 20% prueba.
 def balance_and_split(dataset: list, train_ratio: float = 0.8, semilla: int = 42):
-    """
-    Equilibra las clases (50% minas, 50% seguras) mediante submuestreo (undersampling)
-    y divide los datos en conjuntos de entrenamiento (80%) y prueba (20%).
-    """
     random.seed(semilla)
 
-    mines = [sample for sample in dataset if sample[1] == 1]
-    safe = [sample for sample in dataset if sample[1] == 0]
+    minas = [muestra for muestra in dataset if muestra[1] == 1]
+    seguro = [muestra for muestra in dataset if muestra[1] == 0]
 
-    print(f"Muestras únicas recolectadas -> Seguras (0): {len(safe)} | Minas (1): {len(mines)}")
+    print(f"Muestras únicas recolectadas -> Seguras (0): {len(seguro)} | Minas (1): {len(minas)}")
 
-    # Igualar la clase mayoritaria al tamaño de la minoritaria
-    min_count = min(len(mines), len(safe))
-    balanced_mines = random.sample(mines, min_count)
-    balanced_safe = random.sample(safe, min_count)
+    # Igualar las muestras mayoritaria al tamaño de la minoritaria
+    muestra_minima = min(len(minas), len(seguro))
+    balanceo_mina = random.sample(minas, muestra_minima)
+    balanceo_seguro = random.sample(seguro, muestra_minima)
 
-    balanced_dataset = balanced_mines + balanced_safe
-    random.shuffle(balanced_dataset)
+    balanceo_dataset = balanceo_mina + balanceo_seguro
+    random.shuffle(balanceo_dataset)
 
-    split_idx = int(len(balanced_dataset) * train_ratio)
-    train_data = balanced_dataset[:split_idx]
-    test_data = balanced_dataset[split_idx:]
+    split_idx = int(len(balanceo_dataset) * train_ratio)
+    train_data = balanceo_dataset[:split_idx]
+    test_data = balanceo_dataset[split_idx:]
 
     return train_data, test_data
 
-
+# Metodo que guarda las muestras en un archivo CSV con encabezados f0..f23 y label.
 def save_to_csv(data: list, filepath: str):
-    """Guarda las muestras en un archivo CSV con encabezados f0..f23 y label."""
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     header = [f"f{i}" for i in range(24)] + ["label"]
 
@@ -89,7 +84,7 @@ def save_to_csv(data: list, filepath: str):
 
 if __name__ == "__main__":
     print("Simulando 5.000 partidas para extraer ventanas 5x5...")
-    raw_data = collect_raw_samples(num_games=5000, semilla=42)
+    raw_data = collect_raw_muestras(can_jugadas=5000, semilla=42)
 
     train_set, test_set = balance_and_split(raw_data, train_ratio=0.8, semilla=42)
 
