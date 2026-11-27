@@ -6,7 +6,7 @@ class minasweeper:
     
     #Simulador de busca minas para entrenamiento de agentes de IA.
 
-    # Creación del tablero y estado inicial (Constructor)
+    # Creación del tablero y estado inicial
     def __init__(self, filas: int = 9, columnas: int = 9, can_minas: int = 10):
         self.filas = filas
         self.columnas = columnas
@@ -16,6 +16,9 @@ class minasweeper:
     
     # Reinicia el juego y coloca las minas desde el inicio, para crear multiples partidas de entrenamiento
     def reset(self):
+        """
+        Metodo que reinicia el juego, colocando minas aleatoriamente y reseteando el estado del tablero y las banderas de victoria/derrota.
+        """
         # -1 representa mina, 0-8 representa cantidad de minas adyacentes
         self.tablero = [[0 for _ in range(self.columnas)] for _ in range(self.filas)]
         # True si la casilla fue descubierta, False si sigue oculta
@@ -33,11 +36,11 @@ class minasweeper:
         #Verificar si las coordenadas están dentro de los límites del tablero.
         return 0 <= fila < self.filas and 0 <= columna < self.columnas
     
-    # Metodo que revisa los vecinos de una casilla y devuelve un array de 3x3 
+    # Metodo que revisa los vecinos de una casilla y devuelve ua lista de coordenadas de hasta 8 vecinos adyacnetes
     def _get_vecinos(self, fila: int, columna: int) -> list:
         
         vecinos = []
-        # revisa todos los vecionas de la casilla y los agrega a una lista 
+        # revisa todos los vecionas de la casilla y los agrega a una lista
         for dr in (-1, 0, 1):
             for dc in (-1, 0, 1):
                 if dr == 0 and dc == 0:
@@ -71,7 +74,7 @@ class minasweeper:
                 self.tablero[f][c] = contador_minas
     #Metodo que procesa una jugada del jugador, revelando la casilla y propagando si es necesario.
     def jugada(self, f: int, c: int) -> tuple:
-        # Retorna una tupla (perdites, ganaste) indicando si el juego terminó y si se ganó.
+        # Retorna una tupla (perdiste, ganaste) indicando si el juego terminó y si se ganó.
         if self.perdiste or not self.limite(f, c) or self.visible[f][c]:
             return self.perdiste, self.ganaste
 
@@ -109,7 +112,7 @@ class minasweeper:
                         self.casilla_descubiertas += 1
                         queue.append((nr, nc))
     # Metodo que devuelve todas las casillas ocultas que tienen al menos un vecino descubierto
-    #Esto para encontrar las casillas para que el agente pueda tomar decicisiones de jugadas. 
+    #Esto para encontrar las casillas para que el agente pueda tomar decisiones de jugadas. 
     def busqueda_casilla(self) -> list:
         
         frontier = []
@@ -119,7 +122,7 @@ class minasweeper:
                     if any(self.visible[nr][nc] for nr, nc in self._get_vecinos(f, c)):
                         frontier.append((f, c))
         return frontier
-    # Obtienen los valores de las casillas alrdedor de la casilla (r, c) en una ventana de 5x5, excluyendo la casilla central.
+    # Obtienen los valores de las casillas alrededor de la casilla (r, c) en una ventana de 5x5, excluyendo la casilla central.
     def ventana_5x5(self, f: int, c: int) -> list:
         
         #-2 = fuera del tablero
@@ -166,7 +169,7 @@ if __name__ == "__main__":
     print(f"\nCasillas frontera detectadas: {len(frontier)}")
     if frontier:
         sample_r, sample_c = frontier[0]
-        ganastedow = juego.ventana_5x5(sample_r, sample_c)
+        ganaste = juego.ventana_5x5(sample_r, sample_c)
         label = 1 if juego.tablero[sample_r][sample_c] == -1 else 0
-        print(f"Ejemplo ventana 5x5 para ({sample_r}, {sample_c}) -> Largo: {len(ganastedow)}, Etiqueta real: {label}")
-        print(ganastedow)
+        print(f"Ejemplo ventana 5x5 para ({sample_r}, {sample_c}) -> Largo: {len(ganaste)}, Etiqueta real: {label}")
+        print(ganaste)

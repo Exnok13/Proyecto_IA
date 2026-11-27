@@ -179,7 +179,7 @@ class BosqueAleatorioID3:
     Ensamble (Random Forest) compuesto por múltiples Árboles de Decisión ID3
     entrenados sobre muestras Bootstrap y subconjuntos aleatorios de atributos.
     """
-    def __init__(self, num_arboles=7, max_profundidad=9, min_muestras_division=15, max_caracteristicas=12, semilla=42):
+    def __init__(self, num_arboles=9, max_profundidad=9, min_muestras_division=15, max_caracteristicas=12, semilla=42):
         self.num_arboles = num_arboles
         self.max_profundidad = max_profundidad
         self.min_muestras_division = min_muestras_division

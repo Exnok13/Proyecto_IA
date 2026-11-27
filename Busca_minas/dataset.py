@@ -2,10 +2,12 @@ import csv
 import os
 import random
 from minasweeper import minasweeper
-    
-# Metodo que simula partidas para la recolección de datos de entrenamiento para el modelo de Buscaminas.
-def collect_raw_muestras(can_jugadas: int = 5000, semilla: int = 42) -> list:
-    
+
+
+
+
+def get_ventanas(can_jugadas: int = 5000, semilla: int = 42) -> list:
+    """Metodo que simula partidas para la recolección de datos de entrenamiento para el modelo de Buscaminas."""
     random.seed(semilla)
     juego = minasweeper(filas=9, columnas=9, can_minas=10)  
     # dicionario para guardar las ventanas 5x5
@@ -46,9 +48,10 @@ def collect_raw_muestras(can_jugadas: int = 5000, semilla: int = 42) -> list:
     dataset = [(list(ventana), label) for ventana, label in diccionario.items()]
     return dataset
 
-# Equilibrar las jugadas en 50% minas y 50% seguras mediante submuestreo y divide los datos entre un 80% entrenamiento 
-# y un 20% prueba.
-def balance_and_split(dataset: list, train_ratio: float = 0.8, semilla: int = 42):
+
+def balancer_dividir(dataset: list, train_ratio: float = 0.8, semilla: int = 42):
+    """Equilibrar las jugadas en 50% minas y 50% seguras mediante submuestreo y divide los datos entre un 80% entrenamiento 
+     y un 20% prueba."""
     random.seed(semilla)
 
     minas = [muestra for muestra in dataset if muestra[1] == 1]
@@ -70,8 +73,11 @@ def balance_and_split(dataset: list, train_ratio: float = 0.8, semilla: int = 42
 
     return train_data, test_data
 
-# Metodo que guarda las muestras en un archivo CSV con encabezados f0..f23 y label.
-def save_to_csv(data: list, filepath: str):
+
+def guardar_csv(data: list, filepath: str):
+    
+    """Metodo que guarda las muestras en un archivo CSV con encabezados y label."""""
+    
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     header = [f"f{i}" for i in range(24)] + ["label"]
 
@@ -84,12 +90,12 @@ def save_to_csv(data: list, filepath: str):
 
 if __name__ == "__main__":
     print("Simulando 5.000 partidas para extraer ventanas 5x5...")
-    raw_data = collect_raw_muestras(can_jugadas=5000, semilla=42)
+    raw_data = get_ventanas(can_jugadas=5000, semilla=42)
 
-    train_set, test_set = balance_and_split(raw_data, train_ratio=0.8, semilla=42)
+    train_set, test_set = balancer_dividir(raw_data, train_ratio=0.8, semilla=42)
 
-    save_to_csv(train_set, "data/train.csv")
-    save_to_csv(test_set, "data/test.csv")
+    guardar_csv(train_set, "data/train.csv")
+    guardar_csv(test_set, "data/test.csv")
 
     print(f"Dataset balanceado guardado exitosamente:")
     print(f" - Entrenamiento (data/train.csv): {len(train_set)} filas")

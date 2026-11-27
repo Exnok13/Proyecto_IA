@@ -67,9 +67,6 @@ def simular_partidas(agente=None, usar_deduccion=False, num_partidas=1000, semil
         if agente is not None:
             agente.reiniciar_partida()
 
-        # Primer clic seguro en el centro (4, 4)
-        while juego.tablero[4][4] == -1:
-            juego.reset()
 
         perdiste, ganaste = juego.jugada(4, 4)
 
